@@ -1,0 +1,2 @@
+config CONFIG_BOARDNAME
+	default "bluestone_te5000" if CONFIG_BLUESTONE_TE5000

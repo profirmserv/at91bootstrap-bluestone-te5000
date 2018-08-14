@@ -65,4 +65,8 @@
 #include "sama5d3_linea.h"
 #endif
 
+#ifdef CONFIG_BLUESTONE_TE5000
+#include "bluestone_te5000.h"
+#endif
+
 #endif
