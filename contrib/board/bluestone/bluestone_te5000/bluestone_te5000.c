@@ -45,6 +45,7 @@
 #include "arch/at91_rstc.h"
 #include "arch/at91_sfr.h"
 #include "arch/tz_matrix.h"
+#include "twi.h"
 
 static void at91_dbgu_hw_init(void)
 {
@@ -332,6 +333,93 @@ static void te5000_beeper_off(void)
 	pio_set_gpio_output(AT91C_PIN_PB(29), 0);
 }
 
+#define LCD_ADDR 0x3c
+#define LCD_COLS 20
+
+static void lcd_reset(void)
+{
+	pio_set_gpio_output(AT91C_PIN_PB(17), 1);
+	mdelay(10);
+	pio_set_gpio_output(AT91C_PIN_PB(17), 0);
+	mdelay(50);
+	pio_set_gpio_output(AT91C_PIN_PB(17), 1);
+	mdelay(100);
+}
+
+static void lcd_write(unsigned char *data, unsigned int bytes)
+{
+	twi_write(0, LCD_ADDR, 0, 0, data, bytes);
+}
+
+static void lcd_write_cmd(unsigned char cmd)
+{
+	unsigned char buf[] = {0x80, cmd};
+	lcd_write(buf, sizeof(buf));
+}
+
+static void lcd_write_string(char *data)
+{
+	unsigned int len = strlen(data);
+	unsigned char buf[LCD_COLS + 1];
+	buf[0] = 0x40;
+	memcpy(buf + 1, data, min(len, LCD_COLS));
+	lcd_write(buf, len + 1);
+}
+
+static void lcd_init(void)
+{
+	/* Bootup sequence from WO2004.C, acquired from Winstar customer
+	 * support */
+
+	lcd_reset();
+
+	lcd_write_cmd(0x01); /* Clear dispaly */
+
+	mdelay(50);
+
+	lcd_write_cmd(0x39); /* Function SET DL=1 N=1 DH=0 RE=0 IS=1 */
+	lcd_write_cmd(0x06); /* Entry mode set I/D=1 S=0 */
+	lcd_write_cmd(0x0c); /* Display on D=1 C=0 B=0 */
+	lcd_write_cmd(0x1b); /* Internal OSC BS0=1 F[2:0]=011 */
+	lcd_write_cmd(0x56); /* Power Icon  Contrast set ION=0 BON=1 C[5:4]=10 */
+	lcd_write_cmd(0x6d); /* Follower control DON=1 Rab[2:0]==101=4.4 */
+	lcd_write_cmd(0x75); /* Contrast set  VOP=C[3:0]=0011 73 7.52V; 78:7.69V;7B:7.77V;7D:7.83V;7F:7.89V */
+
+	lcd_write_cmd(0x38); /* Function SET DL=1 N=1 DH=0 RE=0 IS=0 */
+	lcd_write_cmd(0x3e); /* Function set DL=1 N=1 RE=1 */
+	lcd_write_cmd(0x02); /* Power down mode PD=0 */
+	lcd_write_cmd(0x05); /* Entry mode set BDC=0 BDS=1 */
+	lcd_write_cmd(0x09); /* Extended function set FW=0 B/W=0 NW=1 */
+	lcd_write_cmd(0x1e); /* Double hight/bisa/display-dot shift UD[2:1]=11 BS1=1 DH'=0 */
+	lcd_write_cmd(0x80); /* Set scroll quantity SQ[5:0]=000000 */
+
+	lcd_write_cmd(0x38); /* Reset RE and IS to 0 */
+}
+
+static void lcd_goto(unsigned char row, unsigned char col)
+{
+	static const unsigned char
+		ddram_row_addrs[] = {0x00, 0x20, 0x40, 0x60};
+	unsigned char ddram_addr = ddram_row_addrs[row] + col;
+	lcd_write_cmd(0x80 | ddram_addr);
+}
+
+static void lcd_write_string_at(unsigned char row,
+				unsigned char col,
+				char *s)
+{
+	lcd_goto(row, col);
+	lcd_write_string(s);
+}
+
+static void lcd_splash(void)
+{
+	lcd_init();
+	lcd_write_string_at(0, 0, "   OnSite TE5000    ");
+	lcd_write_string_at(1, 0, "   Starting Up...   ");
+	lcd_write_string_at(3, 0, "    Please Wait     ");
+}
+
 #ifdef CONFIG_HW_INIT
 void hw_init(void)
 {
@@ -363,6 +451,11 @@ void hw_init(void)
 	l2cache_prepare();
 
 	at91_init_can_message_ram();
+
+        if (!twi_init_done)
+                twi_init();
+
+	lcd_splash();
 }
 #endif
 
@@ -434,5 +527,37 @@ void at91_sdhc_hw_init(void)
 	pmc_enable_periph_generated_clk(CONFIG_SYS_ID_SDHC,
 					GCK_CSS_UPLL_CLK,
 					ATMEL_SDHC_GCKDIV_VALUE);
+}
+#endif
+
+#if defined(CONFIG_TWI0)
+unsigned int at91_twi0_hw_init(void)
+{
+        unsigned int base_addr = AT91C_BASE_TWI0;
+
+        const struct pio_desc twi_pins[] = {
+                {"TWD0", AT91C_PIN_PD(21), 0, PIO_DEFAULT, PIO_PERIPH_B},
+                {"TWCK0", AT91C_PIN_PD(22), 0, PIO_DEFAULT, PIO_PERIPH_B},
+                {(char *)0, 0, 0, PIO_DEFAULT, PIO_PERIPH_A},
+        };
+
+        pio_configure(twi_pins);
+
+        pmc_sam9x5_enable_periph_clk(AT91C_ID_TWI0);
+
+        return base_addr;
+}
+#endif
+
+#if defined(CONFIG_TWI1)
+unsigned int at91_twi1_hw_init(void)
+{
+	return NULL;
+}
+#endif
+
+#if defined(CONFIG_AUTOCONFIG_TWI_BUS)
+void at91_board_config_twi_bus(void)
+{
 }
 #endif

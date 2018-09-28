@@ -8,5 +8,6 @@ config CONFIG_BLUESTONE_TE5000
 	select ALLOW_CPU_CLK_492MHZ
 	select ALLOW_CRYSTAL_24_000MHZ
 	select SUPPORT_BUS_SPEED_164MHZ
+	select CONFIG_TWI
 	help
 	  Use the Bluestone TE5000 board
