@@ -333,6 +333,16 @@ static void te5000_beeper_off(void)
 	pio_set_gpio_output(AT91C_PIN_PB(29), 0);
 }
 
+static void te5000_rf_setup(void)
+{
+	pio_set_gpio_output(AT91C_PIN_PB(14), 0);
+	pio_set_gpio_output(AT91C_PIN_PB(15), 0);
+	mdelay(1);
+	pio_set_gpio_output(AT91C_PIN_PB(14), 1);
+	mdelay(5);
+	pio_set_gpio_output(AT91C_PIN_PB(15), 1);
+}
+
 #define LCD_ADDR 0x3c
 #define LCD_COLS 20
 
@@ -455,6 +465,7 @@ void hw_init(void)
         if (!twi_init_done)
                 twi_init();
 
+	te5000_rf_setup();
 	lcd_splash();
 }
 #endif
