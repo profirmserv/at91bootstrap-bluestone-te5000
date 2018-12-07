@@ -324,13 +324,7 @@ void at91_init_can_message_ram(void)
 static void at91_red_led_on(void)
 {
 	pio_set_gpio_output(AT91C_PIN_PA(10), 1);
-	pio_set_gpio_output(AT91C_PIN_PA(31), 0);
-	pio_set_gpio_output(AT91C_PIN_PB(01), 0);
-}
-
-static void te5000_beeper_off(void)
-{
-	pio_set_gpio_output(AT91C_PIN_PB(29), 0);
+	pio_set_gpio_output(AT91C_PIN_PB(00), 0);
 }
 
 static void te5000_rf_setup(void)
@@ -436,7 +430,6 @@ void hw_init(void)
 	at91_disable_wdt();
 
 	at91_red_led_on();
-	te5000_beeper_off();
 
 	pmc_cfg_plla(PLLA_SETTINGS);
 
