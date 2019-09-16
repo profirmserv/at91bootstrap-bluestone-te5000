@@ -420,7 +420,7 @@ static void lcd_splash(void)
 {
 	lcd_init();
 	lcd_write_string_at(0, 0, "   OnSite TE5000    ");
-	lcd_write_string_at(1, 0, "   Starting Up...   ");
+	lcd_write_string_at(1, 0, "   Starting Up      ");
 	lcd_write_string_at(3, 0, "    Please Wait     ");
 }
 
